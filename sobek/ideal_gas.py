@@ -6,15 +6,15 @@ class IdealGas:
     
         self.g = g
         
-    def de2p(self, d, e, extra):
+    def de2p(self, d, e):
     
         return (self.g-1)*d*e
         
-    def dp2e(self, d, p, extra):
+    def dp2e(self, d, p):
     
         return p/d/(self.g-1)
         
-    def dp2c(self, d, p, extra):
+    def dp2c(self, d, p):
     
         import math
         

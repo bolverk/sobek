@@ -1,7 +1,8 @@
-import copy
 import unittest
 from hydrodynamic_variables import primitive2conserved, calc_total_energy_density, primitive2flux
+#from numba import jit
 
+#@jit
 def calc_wave_speeds(left, right):
 
     dl = left['density']
@@ -22,14 +23,15 @@ def calc_wave_speeds(left, right):
             
 def calc_starred_state(state, sk, ss):
 
+    import numpy
+
     dk = state['density']
     pk = state['pressure']
     vk = state['velocity']
     ds = dk*(sk-vk)/(sk-ss)
     ek = calc_total_energy_density(state)
-    return {'mass':ds,
-            'momentum':ds*ss,
-            'energy':ek*ds/dk+ds*(ss-vk)*(ss+pk/dk/(sk-vk))}
+    return numpy.array((ds,ds*ss,ek*ds/dk+ds*(ss-vk)*(ss+pk/dk/(sk-vk))),
+                        dtype=[('mass','d'),('momentum','d'),('energy','d')])
 
 class HLLC:
 
@@ -38,11 +40,12 @@ class HLLC:
         pass
         
     def __call__(self, left, right, velocity):
-        
-        local_left = copy.deepcopy(left)
-        local_right = copy.deepcopy(right)
-        
+    
+        import numpy
+    
+        local_left = numpy.copy(left)
         local_left['velocity'] -= velocity
+        local_right = numpy.copy(right)
         local_right['velocity'] -= velocity
         
         ul = primitive2conserved(local_left)
@@ -59,23 +62,24 @@ class HLLC:
         if ws['left']>0:
             res = fl
         elif ws['left']<=0 and ws['center']>=0:
-            #res = fl+ws['center']*(usl-ul)
-            #res = {field: fl[field]+ws['center']*(usl[field]-ul[field] for field in fl}
-            res = {}
-            for field in fl:
-                res[field] = fl[field] + ws['left']*(usl[field]-ul[field])
+            res = numpy.array(zip(*(fl[field]+ws['left']*(usl[field]-ul[field]) for field in fl.dtype.names)),
+                              dtype=[(field,'d') for field in fl.dtype.names])
+#            res = {}
+#            for field in fl:
+#                res[field] = fl[field] + ws['left']*(usl[field]-ul[field])
         elif ws['center']<0 and ws['right']>=0:
+            res = numpy.array(zip(*(fr[field]+ws['right']*(usr[field]-ur[field]) for field in fr.dtype.names)),
+                              dtype=[(field,'d') for field in fr.dtype.names])
             #res = fr + ws['right']*(usr-ur)
-            res = {}
-            for field in fl:
-                res[field] = fr[field] + ws['right']*(usr[field]-ur[field])
+            #res = {}
+            #for field in fl:
+            #res[field] = fr[field] + ws['right']*(usr[field]-ur[field])
         else:
             res = fr
             
         res['energy'] += res['momentum']*velocity + 0.5*res['mass']*velocity**2
         res['momentum'] += velocity*res['mass']
         return res
-        
         
 class TestHLLC(unittest.TestCase):
 

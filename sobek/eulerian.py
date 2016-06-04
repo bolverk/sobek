@@ -4,8 +4,8 @@ class Eulerian:
     
         pass
         
-    def __call__(self, snapshot):
+    def __call__(self, grid, cells):
     
         import numpy
     
-        return numpy.zeros_like(snapshot['grid'])
+        return numpy.zeros_like(grid)
