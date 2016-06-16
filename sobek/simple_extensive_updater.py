@@ -1,4 +1,4 @@
-def simple_extensive_updater(grid, extensive_list, flux_list, geometry, dt):
+def simple_extensive_updater(grid, cells, extensive_list, flux_list, geometry, dt):
 
     import numpy
 

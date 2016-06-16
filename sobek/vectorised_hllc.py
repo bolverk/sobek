@@ -7,7 +7,7 @@ def primitives2conserveds(primitives):
     energies = primitives['energy']
     return numpy.array(zip(densities,
                            densities*velocities,
-                           densities*(velocities**2+energies)),
+                           densities*(0.5*velocities**2+energies)),
                        dtype=[('mass','d'),('momentum','d'),('energy','d')])
                        
 def calc_center_wave_speeds(left, right, sl, sr):
@@ -41,7 +41,7 @@ def primitives2fluxes(primitives):
     energies = primitives['energy']
     return numpy.array(zip(densities*velocities,
                            densities*velocities**2+pressures,
-                           densities*velocities*(velocities**2+energies+pressures/densities)),
+                           densities*velocities*(0.5*velocities**2+energies+pressures/densities)),
                        dtype=[('mass','d'),('momentum','d'),('energy','d')])
 
 def calc_vectorised_hllc(left_states, right_states, velocities):
@@ -70,9 +70,13 @@ def calc_vectorised_hllc(left_states, right_states, velocities):
                           dtype=fl_list.dtype)
     qr_list = numpy.array(zip(*(fr_list[field]+rws_list*(usr_list[field]-ur_list[field]) for field in fr_list.dtype.names)),
                           dtype=fr_list.dtype)
-    res = numpy.where(lws_list>0, fl_list,
-                       numpy.where(cws_list>=0, ql_list,
-                                   numpy.where(cws_list<0,qr_list,fr_list)))
+    res = numpy.where(lws_list>0,
+                      fl_list,
+                      numpy.where(rws_list<0,
+                                  fr_list,
+                                  numpy.where(cws_list>=0,
+                                              ql_list,
+                                              qr_list)))
     res['energy'] += res['momentum']*velocities+0.5*res['mass']*velocities**2
     res['momentum'] += velocities*res['mass']
     return res
@@ -136,6 +140,37 @@ def symmetric_collision_test():
     res_1 = calc_vectorised_hllc(left_states, right_states, velocities)
     
     print 'final flux',res_1
+
+def advection_test():
+
+    import math
+
+    n = 1
+    
+    hydro_variables = ['density','pressure','velocity','energy','sound_speed']
+    dtype = [(field,'d') for field in hydro_variables]
+    left_states = numpy.array(zip(*(10**(4*(numpy.random.rand(n)-0.5)) for c in range(5))),
+                              dtype=dtype)
+    left_states[0]['density'] = 1
+    left_states[0]['pressure'] = 1
+    left_states[0]['velocity'] = 1
+    left_states[0]['energy'] = 1.0/(5.0/3.0-1)
+    left_states[0]['sound_speed'] = math.sqrt(5.0/3.0)
+    right_states = numpy.array(zip(*(10**(4*(numpy.random.rand(n)-0.5)) for c in range(5))),
+                              dtype=dtype)
+    right_states[0]['density'] = 1
+    right_states[0]['pressure'] = 1
+    right_states[0]['velocity'] = 1
+    right_states[0]['energy'] = 1.0/(5.0/3.0-1)
+    right_states[0]['sound_speed'] = math.sqrt(5.0/3.0)
+    velocities = numpy.zeros(n)
+    
+    res_1 = calc_vectorised_hllc(left_states, right_states, velocities)
+
+    print (left_states[0]['energy']*left_states[0]['density']+
+           left_states[0]['pressure']+
+           left_states[0]['density']*left_states[0]['velocity']**2/2.0)*left_states[0]['velocity']
+    print 'final flux',res_1
     
 def compare_to_old_hllc():
 
@@ -161,5 +196,5 @@ def compare_to_old_hllc():
     
 if __name__ == '__main__':
 
-    symmetric_collision_test()
+    advection_test()
     

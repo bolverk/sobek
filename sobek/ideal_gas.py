@@ -7,6 +7,8 @@ class IdealGas:
         self.g = g
         
     def de2p(self, d, e):
+
+        assert(d>0 and e>0)
     
         return (self.g-1)*d*e
         

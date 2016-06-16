@@ -42,7 +42,8 @@ class Simulation:
         
         fluxes = self.data['flux_calculator'](self.data['grid'], self.data['cells'], grid_velocity)
                 
-        self.data['extensive'] = self.data['extensive_updater'](self.data['grid'], 
+        self.data['extensive'] = self.data['extensive_updater'](self.data['grid'],
+                                                                self.data['cells'],
                                                                 self.data['extensive'],
                                                                 fluxes,
                                                                 self.data['physical_geometry'],
